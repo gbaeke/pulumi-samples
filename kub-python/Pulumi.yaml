@@ -1,0 +1,3 @@
+name: kub-python
+runtime: python
+description: AKS deployment
