@@ -21,7 +21,8 @@ rg = core.ResourceGroup("rg-ssolab")
 vnet = network.VirtualNetwork(
     "vnet-sso",
     address_spaces=["10.2.0.0/16"],
-    resource_group_name=rg.name
+    resource_group_name=rg.name,
+    dns_servers=["10.2.0.4"]
 )
 
 subnet = network.Subnet(

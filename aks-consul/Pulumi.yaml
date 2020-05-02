@@ -1,0 +1,3 @@
+name: aks-consul
+runtime: python
+description: Deploy AKS and Consul

@@ -1,22 +1,21 @@
 import pulumi
 from pulumi_azure import core, storage, containerservice, network
-from pulumi_azuread import Application, ServicePrincipal, ServicePrincipalPassword
 from pulumi_kubernetes import Provider, yaml
 
 # read and set config values
-config = pulumi.Config("kub-python")
+config = pulumi.Config("aks-consul")
 
 SSHKEY = config.require("sshkey")
 
 # create a Resource Group and Network for all resources
-rg = core.ResourceGroup("rg-pul-aks")
+rg = core.ResourceGroup("rg-aks-consul")
 
 
 
 # create vnet
 vnet = network.VirtualNetwork(
-    "pul-aks-vnet",
-    name="pul-aks-vnet",
+    "aks-consul-vnet",
+    name="aks-consul-vnet",
     address_spaces=["10.1.0.0/16"],
     resource_group_name=rg.name
 )
@@ -27,7 +26,7 @@ subnet = network.Subnet(
         depends_on=[vnet]
     ),
     virtual_network_name=vnet.name,
-    address_prefix="10.1.0.0/24",
+    address_prefixes=["10.1.0.0/24"],
     resource_group_name=rg.name
 )
 
@@ -60,6 +59,7 @@ k8s = Provider(
     "k8s", kubeconfig=aks.kube_config_raw,
 )
 
+
 realtime = yaml.ConfigFile("realtime",
     opts=pulumi.ResourceOptions(
         depends_on=[aks],
@@ -69,5 +69,4 @@ realtime = yaml.ConfigFile("realtime",
 )
 
 pulumi.export("service", realtime.get_resource("v1/Service","realtimeapp").
-    apply(lambda svc: svc.status["load_balancer"]["ingress"][0]["ip"]))
-
+    apply(lambda svc: svc.status["load_balancer"]["ingress"][0]["ip"])) 
