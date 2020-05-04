@@ -56,10 +56,17 @@ spec:
     spec:
       containers:
       - name: realtimeapp
-        image: gbaeke/fluxapp:1.0.0
+        image: gbaeke/realtime-go:consul
         env:
         - name: REDISHOST
           value: "redisapp:6379"
+        - name: HOST_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.hostIP
+        - name: CONSUL_HTTP_ADDR
+          value: http://$(HOST_IP):8500
         resources:
           requests:
             cpu: 25m

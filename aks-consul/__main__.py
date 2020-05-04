@@ -1,6 +1,8 @@
 import pulumi
 from pulumi_azure import core, storage, containerservice, network
 from pulumi_kubernetes import Provider, yaml
+from pulumi_kubernetes.core.v1 import Namespace
+from pulumi_kubernetes.helm import v3
 
 # read and set config values
 config = pulumi.Config("aks-consul")
@@ -40,7 +42,7 @@ aks = containerservice.KubernetesCluster(
     linux_profile={"adminUsername": "azure", "ssh_key": {"keyData": SSHKEY}},
     default_node_pool={
         "name": "pool1",
-        "node_count": 2,
+        "node_count": 3,
         "vm_size": "Standard_B2ms",
         "vnet_subnet_id": subnet.id
     },
@@ -59,14 +61,58 @@ k8s = Provider(
     "k8s", kubeconfig=aks.kube_config_raw,
 )
 
-
-realtime = yaml.ConfigFile("realtime",
+ns_consul = Namespace("consul",
     opts=pulumi.ResourceOptions(
         depends_on=[aks],
         provider=k8s
     ),
-    file_id="realtime.yaml",  
+    metadata={
+        "name":"consul"
+    }
+    
 )
 
-pulumi.export("service", realtime.get_resource("v1/Service","realtimeapp").
-    apply(lambda svc: svc.status["load_balancer"]["ingress"][0]["ip"])) 
+ns_flux = Namespace("flux",
+    opts=pulumi.ResourceOptions(
+        depends_on=[aks],
+        provider=k8s
+    ),
+    metadata={
+        "name":"flux"
+    }
+    
+)
+
+consul = v3.Chart("consul",
+    config=v3.LocalChartOpts(
+        path="consul-helm",
+        namespace="consul",
+        values={
+            "connectInject.enabled": "true",
+            "client.enabled": "true",
+            "client.grpc": "true",
+            "syncCatalog.enabled": "true"   
+        }        
+    ),
+    opts=pulumi.ResourceOptions(
+        depends_on=[ns_consul],
+        provider=k8s
+    )    
+)
+
+flux = v3.Chart("flux",
+    config=v3.LocalChartOpts(
+        path="flux",
+        namespace="flux",
+        values={
+            "git.url": "git@github.com:gbaeke/consul-demo",
+            "git.path": "config",
+            "git.pollInterval": "1m"
+        }        
+    ),
+    opts=pulumi.ResourceOptions(
+        depends_on=[ns_flux],
+        provider=k8s
+    )    
+)
+
