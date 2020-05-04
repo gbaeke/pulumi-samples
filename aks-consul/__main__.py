@@ -7,7 +7,7 @@ from pulumi_kubernetes.helm import v3
 # read and set config values
 config = pulumi.Config("aks-consul")
 
-SSHKEY = config.require("sshkey")
+sshKey = config.require("sshkey")
 
 # create a Resource Group and Network for all resources
 rg = core.ResourceGroup("rg-aks-consul")
@@ -39,7 +39,7 @@ aks = containerservice.KubernetesCluster(
     ),
     resource_group_name=rg.name,
     dns_prefix="pul",
-    linux_profile={"adminUsername": "azure", "ssh_key": {"keyData": SSHKEY}},
+    linux_profile={"adminUsername": "azure", "ssh_key": {"keyData": sshKey}},
     default_node_pool={
         "name": "pool1",
         "node_count": 3,
